@@ -13,7 +13,7 @@ sub BUILD {
     my $self = shift;
     
     my ($in, $out);
-    my $pid = open3($in, $out, $out, 'RNAfold', '-p', '-d2', '--noLP');
+    my $pid = open3($in, $out, $out, 'RNAfold', '-p', '-d2', '--noLP', '--noPS');
     
     $self->_in( $in );
     $self->_out( $out );
