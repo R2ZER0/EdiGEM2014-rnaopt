@@ -6,9 +6,13 @@ $| = 1;
 use RNAOpt::RNAfold::Worker;
 use RNAOpt::Runner;
 
-
 my @sequences = <>;
 chomp @sequences;
+
+# not a nice way but it works
+@sequences = map(uc, @sequences);
+foreach(@sequences) { s/[^ACGU<>\[\]]//g; }
+
 
 my $worker = RNAOpt::RNAfold::Worker->new();
 
@@ -19,4 +23,6 @@ my $runner = RNAOpt::Runner->new(
 
 my $results = $runner->results;
 
-#print $results->[0];
+my @sorted_results = sort { ($b->region_clear_ratio_centroid + $b->region_clear_ratio_mfe) cmp ($a->region_clear_ratio_centroid + $a->region_clear_ratio_mfe) } @{$results}; 
+
+print $sorted_results[0]->freeze;

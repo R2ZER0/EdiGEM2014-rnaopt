@@ -6,18 +6,17 @@ use IPC::Open3;
 use IO::Handle;
 use RNAOpt::RNAfold::Result;
 
-has '_in'  => ( is => 'rw', isa => 'Maybe[IO::Handle]' );
-has '_out' => ( is => 'rw', isa => 'Maybe[IO::Handle]' );
-has '_pid' => ( is => 'rw', isa => 'Maybe[Int]' );
-
+has '_in'  => ( is => 'rw' );
+has '_out' => ( is => 'rw' );
+has '_pid' => ( is => 'rw' );
 sub BUILD {
     my $self = shift;
     
     my ($in, $out);
     my $pid = open3($in, $out, $out, 'RNAfold', '-p', '-d2', '--noLP');
     
-    $self->_in(  IO::Handle->new_from_fd(fileno($in ), 'w') );
-    $self->_out( IO::Handle->new_from_fd(fileno($out), 'r') );
+    $self->_in( $in );
+    $self->_out( $out );
     $self->_pid( $pid );
     
     print "Got worker $pid \n"
@@ -27,13 +26,9 @@ sub get_result {
     my $self = shift;
     my $sequence = shift;
     
-    print "Sending $sequence \n\n";
     $self->_in->print($sequence."\n");
     my @lines;
-    foreach (0..4) { print "x"; push @lines, $self->_out->getline; print 'X'; }
-    
-    print "\n\nGetting result\n\n";
-    
+    foreach (0..4) { push @lines, $self->_out->getline; }    
     
     my ($sequence_out, $structure_mfe, $structure_centroid, $mfe);
     

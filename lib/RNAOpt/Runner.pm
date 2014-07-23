@@ -2,6 +2,8 @@ package RNAOpt::Runner;
 use namespace::autoclean;
 use Moose;
 
+use RNAOpt::TaggedResult;
+
 has rnafold_worker => ( is => 'ro', isa => 'RNAOpt::RNAfold::Worker', required => 1 );
 has tagged_sequences => ( is => 'ro', isa => 'ArrayRef[Str]', required => 1 );
 
@@ -15,14 +17,11 @@ has results => (
 sub _build_results {
     my $self = shift;
     
-    print "building results\n";
-    
     my @results = ();
     
     foreach my $seq (@{ $self->tagged_sequences }) {
         my $raw_seq = $seq;
-        $raw_seq =~ s/<>\[\]//g; # Remove tags
-        print "$seq";
+        $raw_seq =~ s/[<>\[\]]//g; # Remove tags
         
         push @results, $self->_tag_result(
             $seq,
