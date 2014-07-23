@@ -6,9 +6,9 @@ use IPC::Open3;
 use IO::Handle;
 use RNAOpt::RNAfold::Result;
 
-has '_in'  => ( is => 'rw', isa => 'IO::Handle' );
-has '_out' => ( is => 'rw', isa => 'IO::Handle' );
-has '_pid' => ( is => 'rw', isa => 'Int' );
+has '_in'  => ( is => 'rw', isa => 'Maybe[IO::Handle]' );
+has '_out' => ( is => 'rw', isa => 'Maybe[IO::Handle]' );
+has '_pid' => ( is => 'rw', isa => 'Maybe[Int]' );
 
 sub BUILD {
     my $self = shift;
@@ -62,10 +62,12 @@ sub get_result {
 sub done {
     my $self = shift;
     
-    while($self->_out->getline) { }
-    
     $self->_in->print("@\n");
     waitpid $self->_pid, 0;
+    
+    $self->_in( undef );
+    $self->_out( undef );
+    $self->_pid( undef );
 };
 
 sub DEMOLISH {
