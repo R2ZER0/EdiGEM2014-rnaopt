@@ -25,4 +25,4 @@ my $results = $runner->results;
 
 my @sorted_results = sort { ($b->region_clear_ratio_centroid + $b->region_clear_ratio_mfe) cmp ($a->region_clear_ratio_centroid + $a->region_clear_ratio_mfe) } @{$results}; 
 
-print $sorted_results[0]->freeze;
+print join("\n", map { $_->freeze } @sorted_results[0..100] );

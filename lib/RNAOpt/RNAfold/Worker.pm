@@ -18,8 +18,6 @@ sub BUILD {
     $self->_in( $in );
     $self->_out( $out );
     $self->_pid( $pid );
-    
-    print "Got worker $pid \n"
 };
 
 sub get_result {
