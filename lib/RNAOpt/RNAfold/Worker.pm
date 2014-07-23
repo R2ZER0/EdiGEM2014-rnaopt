@@ -19,15 +19,21 @@ sub BUILD {
     $self->_in(  IO::Handle->new_from_fd(fileno($in ), 'w') );
     $self->_out( IO::Handle->new_from_fd(fileno($out), 'r') );
     $self->_pid( $pid );
+    
+    print "Got worker $pid \n"
 };
 
 sub get_result {
     my $self = shift;
     my $sequence = shift;
     
+    print "Sending $sequence \n\n";
     $self->_in->print($sequence."\n");
     my @lines;
-    foreach (0..4) { push @lines, $self->_out->getline; }
+    foreach (0..4) { print "x"; push @lines, $self->_out->getline; print 'X'; }
+    
+    print "\n\nGetting result\n\n";
+    
     
     my ($sequence_out, $structure_mfe, $structure_centroid, $mfe);
     
@@ -40,16 +46,16 @@ sub get_result {
     
     if($lines[0] =~ m/([UGAC]+)/) {
         $sequence_out = $1;
-    } else die "Cannot unpack sequence from output!";
+    } else { die "Cannot unpack sequence from output!"; }
     
     if($lines[1] =~ m/([\.()]+)\s*\(\s*(-?[\.\d,]+)\s*\)\s*/) {
         $structure_mfe = $1;
         $mfe = $2;
-    } else die "Cannot unpack MFE/structure!";
+    } else { die "Cannot unpack MFE/structure!"; }
     
     if($lines[3] =~ m/([\.()]+)/) {
         $structure_centroid = $1;
-    } else die "Cannot unpack centroid structure!";
+    } else { die "Cannot unpack centroid structure!"; }
     
     return RNAOpt::RNAfold::Result->new(
         sequence_raw => $sequence_out,
