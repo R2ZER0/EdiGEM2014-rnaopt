@@ -9,11 +9,14 @@ use RNAOpt::RNAfold::Result;
 has '_in'  => ( is => 'rw' );
 has '_out' => ( is => 'rw' );
 has '_pid' => ( is => 'rw' );
+
+has 'executable_path' => ( is => 'ro', isa => 'Str', default => 'RNAfold' );
+
 sub BUILD {
     my $self = shift;
     
     my ($in, $out);
-    my $pid = open3($in, $out, $out, 'RNAfold', '-p', '-d2', '--noLP', '--noPS');
+    my $pid = open3($in, $out, $out, $self->executable_path, '-p', '-d2', '--noLP', '--noPS');
     
     $self->_in( $in );
     $self->_out( $out );
