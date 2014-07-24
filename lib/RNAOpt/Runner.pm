@@ -38,7 +38,7 @@ sub _build_results {
 sub _tag_result {
     my ($self, $tagged_seq, $result) = @_;
     
-    my $result = RNAOpt::TaggedResult->new(
+    my $tagged_result = RNAOpt::TaggedResult->new(
         # From raw folding output
         sequence_raw => $result->sequence_raw,
         structure_mfe => $result->structure_mfe,
@@ -50,8 +50,10 @@ sub _tag_result {
     );
     
     if (defined $self->hook) {
-        &($self->hook)($result);
+        &{ $self->hook() }($result);
     }
+    
+    return $tagged_result;
 }
 
 __PACKAGE__->meta->make_immutable;

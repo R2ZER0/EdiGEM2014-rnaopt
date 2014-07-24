@@ -16,7 +16,7 @@ sub BUILD {
     my $self = shift;
     
     my ($in, $out);
-    my $pid = open3($in, $out, $out, $self->executable_path, '-p2', '-d2', '--noLP', '--noPS');
+    my $pid = open3($in, $out, $out, $self->executable_path, '-p2', '-d2', '--noLP');
     
     $self->_in( $in );
     $self->_out( $out );

@@ -19,6 +19,8 @@ open(INDEXFILE, '>', 'index.html') or die "Couldn't open index.html!";
 mkdir './img';
 mkdir './plot';
 
+my $REPORT = 25;
+
 my @sequences = <ANTISENSE>;
 chomp @sequences;
 
@@ -29,6 +31,7 @@ foreach(@sequences) { s/[^ACGU<>\[\]]//g; }
 sub result_hook {
     my $result = shift;
     store_plot($result);
+    print '.';
 };
 
 
@@ -40,7 +43,10 @@ my $runner = RNAOpt::Runner->new(
     hook => \&result_hook,
 );
 
+print "Setup complete: will generate a report for top $REPORT sequences.\n";
+print "Generating structures";
 my $results = $runner->results;
+print "Done.\n";
 
 my @sorted_results = sort { ($b->region_clear_ratio_centroid + $b->region_clear_ratio_mfe) cmp ($a->region_clear_ratio_centroid + $a->region_clear_ratio_mfe) } @{$results}; 
 
@@ -161,8 +167,8 @@ sub generate_result_view_hash {
     @view{('structure_mfe_l', 'structure_mfe_rl', 'structure_mfe_s', 'structure_mfe_rr', 'structure_mfe_r')} = @{ areas($result, $result->structure_mfe) };
     @view{('structure_centroid_l', 'structure_centroid_rl', 'structure_centroid_s', 'structure_centroid_rr', 'structure_centroid_r')} = @{ areas($result, $result->structure_centroid) };
     
-    $view{image_path_mfe} = 'img/'.$result->sequence_raw.'/mfe.png';
-    $view{image_path_centroid} = 'img/'.$result->sequence_raw.'/centroid.png';
+    $view{image_path_mfe} = 'img/'.$rank.'/mfe.png';
+    $view{image_path_centroid} = 'img/'.$rank.'/centroid.png';
     
     return \%view;
 };
@@ -181,12 +187,14 @@ my $template = Template->new();
 my $output = '';
 
 my @results_for_display = ();
-foreach my $rank (0..19) {
+foreach my $rank (0..$REPORT) {
     push @results_for_display, generate_result_view_hash($rank, $sorted_results[$rank]);
 }
 
+print "Generating images";
 # Generate the plots for each of them
-foreach my $result (@results_for_display) {
+foreach my $rank (0..$REPORT) {
+    my $result = $sorted_results[$rank];
 
     my ($rnaplot_in, $rnaplot_out);
     my $pid = open3($rnaplot_in, $rnaplot_out, $rnaplot_out, $RNAPLOT) or die 'Cannot open RNAplot!';
@@ -203,12 +211,15 @@ foreach my $result (@results_for_display) {
     system("$RELPLOT plot/$seq/rna_mfe.ps plot/$seq/dot_mfe.ps > plot/$seq/coloured_mfe.ps");
     system("$RELPLOT plot/$seq/rna_centroid.ps plot/$seq/dot_centroid.ps > plot/$seq/coloured_centroid.ps");
     
-    mkdir "img/$seq";
-    psconvert("plot/$seq/coloured_mfe.ps", "img/$seq/mfe.png", paper_size => [ 452, 452 ]);
-    psconvert("plot/$seq/coloured_centroid.ps", "img/$seq/centroid.png", paper_size => [ 452, 452 ]);
+    mkdir "img/$rank";
+    psconvert("plot/$seq/coloured_mfe.ps", "img/$rank/mfe.png", paper_size => [ 452, 552 ]);
+    psconvert("plot/$seq/coloured_centroid.ps", "img/$rank/centroid.png", paper_size => [ 452, 552 ]);
     
     # well that took a lot!
+    print '.';
 }
+print "Done.\n";
+print "Complete! Report in index.html!\n";
 
 $template->process(
     \$template_html,
