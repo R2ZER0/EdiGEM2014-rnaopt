@@ -6,14 +6,18 @@ $| = 1;
 use RNAOpt::RNAfold::Worker;
 use RNAOpt::Runner;
 use JSON;
-use GD::Image;
+use PostScript::Convert;
 use Template;
 use IPC::Open3;
+use File::Copy;
 
 my $RELPLOT = 'perl /usr/local/share/ViennaRNA/bin/relplot.pl';
 my $RNAPLOT = 'RNAplot -t1';
 
 open(ANTISENSE, '<', 'antisense.txt') or die 'No antisense.txt!';
+open(INDEXFILE, '>', 'index.html') or die "Couldn't open index.html!";
+mkdir './img';
+mkdir './plot';
 
 my @sequences = <ANTISENSE>;
 chomp @sequences;
@@ -24,7 +28,7 @@ foreach(@sequences) { s/[^ACGU<>\[\]]//g; }
 
 sub result_hook {
     my $result = shift;
-    generate_plots($result);
+    store_plot($result);
 };
 
 
@@ -157,27 +161,21 @@ sub generate_result_view_hash {
     @view{('structure_mfe_l', 'structure_mfe_rl', 'structure_mfe_s', 'structure_mfe_rr', 'structure_mfe_r')} = @{ areas($result, $result->structure_mfe) };
     @view{('structure_centroid_l', 'structure_centroid_rl', 'structure_centroid_s', 'structure_centroid_rr', 'structure_centroid_r')} = @{ areas($result, $result->structure_centroid) };
     
-    $view{image_path_mfe} = 'img/'.$result->sequence_raw.'_mfe.png';
-    $view{image_path_centroid} = 'img/'.$result->sequence_raw.'_centroid.png';
+    $view{image_path_mfe} = 'img/'.$result->sequence_raw.'/mfe.png';
+    $view{image_path_centroid} = 'img/'.$result->sequence_raw.'/centroid.png';
     
     return \%view;
 };
 
-sub generate_plot {
+sub store_plot {
     my $result = shift;
+    my $seq = $result->sequence_raw;
     
-    my ($in, $out);
-    open3($in, $out, $out, $RNAPLOT);
-    
-    if( -e 'rna.ps' ) { unlink 'rna.ps'; }
-    if( -e 'dot.ps' ) { unlink 'dot.ps'; }
-    
-    # First for the MFE plot
-    $in->print($result->structure_mfe . "\n"); 
+    mkdir "plot/$seq";
+    move('rna.ps', "plot/$seq/rna_mfe.ps");
+    move('dot.ps', "plot/$seq/dot_mfe.ps");
+    move('dot2.ps', "plot/$seq/dot_centroid.ps");
 }
-
-open(INDEXFILE, '>', 'index.html');
-mkdir './img';
 
 my $template = Template->new();
 my $output = '';
@@ -187,9 +185,34 @@ foreach my $rank (0..19) {
     push @results_for_display, generate_result_view_hash($rank, $sorted_results[$rank]);
 }
 
+# Generate the plots for each of them
+foreach my $result (@results_for_display) {
+
+    my ($rnaplot_in, $rnaplot_out);
+    my $pid = open3($rnaplot_in, $rnaplot_out, $rnaplot_out, $RNAPLOT) or die 'Cannot open RNAplot!';
+    print $rnaplot_in $result->sequence_raw."\n";
+    print $rnaplot_in $result->structure_centroid."\n";
+    close $rnaplot_in;
+    
+    waitpid $pid, 0; # wait for RNAplot it to finish
+    
+    my $seq = $result->sequence_raw;
+    move('rna.ps', "plot/$seq/rna_centroid.ps");
+    
+    # Now to generate the coloured plots, thanks to the RELPLOT utility
+    system("$RELPLOT plot/$seq/rna_mfe.ps plot/$seq/dot_mfe.ps > plot/$seq/coloured_mfe.ps");
+    system("$RELPLOT plot/$seq/rna_centroid.ps plot/$seq/dot_centroid.ps > plot/$seq/coloured_centroid.ps");
+    
+    mkdir "img/$seq";
+    psconvert("plot/$seq/coloured_mfe.ps", "img/$seq/mfe.png", paper_size => [ 452, 452 ]);
+    psconvert("plot/$seq/coloured_centroid.ps", "img/$seq/centroid.png", paper_size => [ 452, 452 ]);
+    
+    # well that took a lot!
+}
+
 $template->process(
     \$template_html,
-    { 'results' => \@results_for_display, 'title' => $ARGV[0]},
+    { 'results' => \@results_for_display, 'title' => $ARGV[0] },
     \$output,
 ) || die $template->error();
 
