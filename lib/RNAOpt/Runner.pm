@@ -6,6 +6,7 @@ use RNAOpt::TaggedResult;
 
 has rnafold_worker => ( is => 'ro', isa => 'RNAOpt::RNAfold::Worker', required => 1 );
 has tagged_sequences => ( is => 'ro', isa => 'ArrayRef[Str]', required => 1 );
+has hook => ( is => 'ro' );
 
 has results => (
     is => 'ro',
@@ -37,7 +38,7 @@ sub _build_results {
 sub _tag_result {
     my ($self, $tagged_seq, $result) = @_;
     
-    return RNAOpt::TaggedResult->new(
+    my $result = RNAOpt::TaggedResult->new(
         # From raw folding output
         sequence_raw => $result->sequence_raw,
         structure_mfe => $result->structure_mfe,
@@ -47,6 +48,10 @@ sub _tag_result {
         sequence_tagged => $tagged_seq,
         # Everything is auto-calculated... how fun!
     );
+    
+    if (defined $self->hook) {
+        &($self->hook)($result);
+    }
 }
 
 __PACKAGE__->meta->make_immutable;

@@ -53,12 +53,13 @@ sub get_result {
         $structure_centroid = $1;
     } else { die "Cannot unpack centroid structure!"; }
     
-    return RNAOpt::RNAfold::Result->new(
+    my $result = RNAOpt::RNAfold::Result->new(
         sequence_raw => $sequence_out,
         structure_mfe => $structure_mfe,
         structure_centroid => $structure_centroid,
         mfe => $mfe,
     );
+    return $result;
 };
 
 sub done {

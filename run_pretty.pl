@@ -22,12 +22,18 @@ chomp @sequences;
 @sequences = map(uc, @sequences);
 foreach(@sequences) { s/[^ACGU<>\[\]]//g; }
 
+sub result_hook {
+    my $result = shift;
+    generate_plots($result);
+};
+
 
 my $worker = RNAOpt::RNAfold::Worker->new();
 
 my $runner = RNAOpt::Runner->new(
     rnafold_worker => $worker,
     tagged_sequences => \@sequences,
+    hook => \&result_hook,
 );
 
 my $results = $runner->results;
@@ -151,14 +157,13 @@ sub generate_result_view_hash {
     @view{('structure_mfe_l', 'structure_mfe_rl', 'structure_mfe_s', 'structure_mfe_rr', 'structure_mfe_r')} = @{ areas($result, $result->structure_mfe) };
     @view{('structure_centroid_l', 'structure_centroid_rl', 'structure_centroid_s', 'structure_centroid_rr', 'structure_centroid_r')} = @{ areas($result, $result->structure_centroid) };
     
-    $view{image_path_mfe} = 'img/'.$rank.'_mfe.png';
-    $view{image_path_centroid} = 'img/'.$rank.'_centroid.png';
+    $view{image_path_mfe} = 'img/'.$result->sequence_raw.'_mfe.png';
+    $view{image_path_centroid} = 'img/'.$result->sequence_raw.'_centroid.png';
     
     return \%view;
 };
 
-sub generate_plots {
-    my $rank = shift;
+sub generate_plot {
     my $result = shift;
     
     my ($in, $out);
@@ -189,5 +194,7 @@ $template->process(
 ) || die $template->error();
 
 print INDEXFILE $output;
+
+
 
 
